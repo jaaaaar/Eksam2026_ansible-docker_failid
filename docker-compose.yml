@@ -1,0 +1,15 @@
+services:
+  vaultwarden:
+    image: vaultwarden/server:latest
+    container_name: vaultwarden
+    restart: always
+    environment:
+      - SIGNUPS_ALLOWED=true
+      - ADMIN_TOKEN=qEUeDgxSJLgy2Gts1zdkL6FcQn2K4JwnRDtJ5CYATEawEjhNVRCGPeaI4hkjj0NE
+      -  ROCKET_TLS={certs="/data/vault.crt",key="/data/vault.key"}
+    volumes:
+      - ./vw-data:/data
+      - ./vault.crt:/data/vault.crt:ro
+      - ./vault.key:/data/vault.key:ro
+    ports:
+      - 443:80
