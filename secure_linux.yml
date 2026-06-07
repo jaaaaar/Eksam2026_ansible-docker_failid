@@ -1,0 +1,59 @@
+- name: Linux turvaseadistus
+  hosts: linux
+  become: yes
+
+  tasks:
+    - name: HKHK kasutaja loomine
+      ansible.builtin.user:
+          name: hkhk
+          shell: /bin/bash
+          create_home: yes
+          state: present
+    - name: Lisa HKHK kasutajale public võti
+      ansible.posix.authorized_key:
+        user: hkhk
+        state: present
+        key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIICXEL8XPU6qmH9d4G8os1w1gv6N41rVuNXpiWLkHsIo kasutaja@ubuntusrv"
+    - name: Lisa hkhk kasutaja sudo gruppidesse
+      ansible.builtin.user:
+        name: hkhk
+        groups: sudo
+        append: yes
+      when: ansible_os_family == "Debian"
+    - name: Lisa hkhk wheel gruppi Almas
+      ansible.builtin.user:
+        name: hkhk
+        groups: wheel
+        append: yes
+when: ansible_os_family == "Redhat"
+    - name: Luba hkhk kasutajal sudo kasutada ilma paroolita
+      ansible.builtin.copy:
+        dest: /etc/sudoers.d/hkhk
+        content: "hkhk ALL=(ALL) NOPASSWD: ALL"
+        mode: '0440'
+    - name: SSH teenuse nimi Debian
+      ansible.builtin.set_fact:
+        ssh_service: ssh
+      when: ansible_os_family == "Debian"
+    - name: SSH teenuse nimi Almale
+      ansible.builtin.set_fact:
+        ssh_service: sshd
+      when: ansible_os_family == "Redhat"
+    - name: Keela SSH logimine parooliga
+      ansible.builtin.lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: 'PasswordAuthentication'
+        line: 'PasswordAuthentication no'
+        backup: yes
+      notify:  Restart SSH
+  handlers:
+    - name: Restart SSH
+      ansible.builtin.service:
+name: "{{ ssh_service }}"
+        state: restarted
+    - name: Keela root ssh
+      ansible.builtin.lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: 'PermitRootLogin'
+        line: 'PermitRootLogin no'
+      notify: Restart SSH
